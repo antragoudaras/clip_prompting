@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --job-name=text_prompt_color
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:05:00
+#SBATCH --mem=32000M
+#SBATCH --output=text_prompt_color_%A.out
+#SBATCH --error=text_prompt_color_%A.err
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+# activate the environment
+source activate dl2023
+# SRC_DIR=/scratch-local/${USER}/DL1/assignment2/part2
+
+dataset=cifar100 # cifar10, cifar100
+split=test # train, test
+prompt_template='The image contains mostly the color {}'
+classes='red blue green'
+python clipzs.py --dataset $dataset --split $split --prompt_template "$prompt_template" \
+ --class_names $classes --visualize_predictions

@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --job-name=deep_prompts_cifar
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:15:00
+#SBATCH --mem=32000M
+#SBATCH --output=clipdp_inj_layer_ten_cifar100_%A.out
+#SBATCH --error=clipdp_inj_layer_ten_cifar100_%A.err
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+# activate the environment
+source activate dl2023
+# SRC_DIR=/scratch-local/${USER}/DL1/assignment2/part2
+
+# Standard constants
+arch="ViT-B/32"
+text_prompt_template="This is a photo of a {}"
+epochs=20
+
+
+dataset=cifar100
+prompt_type='deep_prompt'
+prompt_num=4
+injection_layer=10
+
+echo "Running experiment on $dataset"
+python main.py \
+    --dataset $dataset \
+    --arch $arch \
+    --prompt_type $prompt_type \
+    --prompt_num $prompt_num \
+    --injection_layer $injection_layer \
+    --text_prompt_template "$text_prompt_template" \
+    --epochs $epochs \
+
+echo "Validating on the test set"
+path_to_model=./save/models/${prompt_type}prompt_num_${prompt_num}injection_layer_${injection_layer}_${dataset}_clip_ViT-B/32_sgd_lr_40_decay_0_bsz_128_warmup_1000_trial_1
+python main.py\
+    --dataset $dataset \
+    --arch $arch \
+    --prompt_type $prompt_type \
+    --prompt_num $prompt_num \
+    --injection_layer $injection_layer \
+    --text_prompt_template "$text_prompt_template" \
+    --resume ${path_to_model}/model_best.pth.tar \
+    --evaluate

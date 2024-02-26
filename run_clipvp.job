@@ -1,0 +1,57 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --job-name=CLIPVP_CIFAR100
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:50:00
+#SBATCH --mem=32000M
+#SBATCH --output=clipvp_cifar_100_%A.out
+#SBATCH --error=clipvp_cifar_100_%A.err
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+# activate the environment
+source activate dl2023
+# SRC_DIR=/scratch-local/${USER}/DL1/assignment2/part2
+
+# Standard constants
+arch="ViT-B/32"
+text_prompt_template="This is a photo of a {}"
+epochs=20
+
+
+dataset=cifar100
+methods=(fixed_patch padding)
+prompt_sizes=(1 30)
+prompt_type='visual_prompt'
+
+
+for i in "${!methods[@]}"; do
+    method=${methods[$i]}
+    prompt_size=${prompt_sizes[$i]}
+    echo "Running experiment on $dataset with $method and prompt size $prompt_size"
+    python main.py \
+        --dataset $dataset \
+        --arch $arch \
+        --prompt_type $prompt_type \
+        --text_prompt_template "$text_prompt_template" \
+        --epochs $epochs \
+        --method $method \
+        --prompt_size $prompt_size \
+        --visualize_prompt
+    path_to_model=./save/models/${prompt_type}_${method}_${prompt_size}_${dataset}_clip_ViT-B/32_sgd_lr_40_decay_0_bsz_128_warmup_1000_trial_1/
+    echo "Running evaluation on $dataset with $method with the best model"
+    python main.py \
+        --dataset $dataset \
+        --arch $arch \
+        --prompt_type $prompt_type \
+        --text_prompt_template "$text_prompt_template" \
+        --method $method \
+        --prompt_size $prompt_size \
+        --resume ${path_to_model}/model_best.pth.tar \
+        --evaluate
+done

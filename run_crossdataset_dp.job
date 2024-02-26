@@ -1,0 +1,42 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu
+#SBATCH --gpus=1
+#SBATCH --job-name=crossdataset_dp
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:05:00
+#SBATCH --mem=32000M
+#SBATCH --output=crossdataset_clipdp_inj_layer_zero_cifar10_%A.out
+#SBATCH --error=crossdataset_clipdp_inj_layer_zero_cifar10_%A.err
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+# activate the environment
+source activate dl2023
+# SRC_DIR=/scratch-local/${USER}/DL1/assignment2/part2
+
+# Standard constants
+arch="ViT-B/32"
+text_prompt_template="This is a photo of a {}"
+
+
+dataset=cifar10
+prompt_type='deep_prompt'
+prompt_num=4
+injection_layer=0
+
+
+path_to_model=./save/models/${prompt_type}prompt_num_${prompt_num}injection_layer_${injection_layer}_${dataset}_clip_ViT-B/32_sgd_lr_40_decay_0_bsz_128_warmup_1000_trial_1
+echo "Running experiment on crossdataset with $prompt_type trained on dataset $dataset"
+python cross_dataset.py \
+    --dataset $dataset \
+    --arch $arch \
+    --prompt_type $prompt_type \
+    --prompt_num $prompt_num \
+    --injection_layer $injection_layer \
+    --text_prompt_template "$text_prompt_template" \
+    --resume ${path_to_model}/model_best.pth.tar \
+    --evaluate  \
